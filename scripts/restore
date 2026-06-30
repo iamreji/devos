@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# restore — quick dotfiles restore
+backup_dir="${1:-$HOME/devos-backup-*}"
+if [[ ! -d "$backup_dir" ]]; then echo "Backup not found: $backup_dir"; exit 1; fi
+echo "Restoring from: $backup_dir"
+for f in zshrc zshenv gitconfig gitignore_global tmux.conf; do
+  [[ -f "$backup_dir/$f" ]] && cp "$backup_dir/$f" "$HOME/.${f}"
+done
+for d in zsh starship kitty ghostty nvim fastfetch; do
+  [[ -d "$backup_dir/$d" ]] && cp -r "$backup_dir/$d" "$HOME/.config/"
+done
+echo "Restored."

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# update — quick system updater
+echo "Updating apt packages..."
+sudo apt-get update -qq && sudo apt-get upgrade -y
+echo "Cleaning up..."
+sudo apt-get autoremove -y -qq
+sudo apt-get autoclean -qq
+echo "Done."

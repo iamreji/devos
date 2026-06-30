@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# docker-clean — aggressive docker cleanup
+docker system prune -af --volumes 2>/dev/null
+docker builder prune -af 2>/dev/null
+echo "Docker cleaned."

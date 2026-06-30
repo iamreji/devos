@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# benchmark — quick system benchmark
+echo "DevOS System Benchmark"
+echo "======================"
+echo
+echo "CPU info:"
+nproc 2>/dev/null && echo "cores"
+echo
+echo "Memory:"
+free -h
+echo
+echo "Disk:"
+df -h /
+echo
+if command -v nvidia-smi &>/dev/null; then
+  echo "GPU:"
+  nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
+fi

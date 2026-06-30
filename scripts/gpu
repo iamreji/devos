@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# gpu — GPU information and diagnostics
+if command -v nvidia-smi &>/dev/null; then
+  nvidia-smi
+else
+  echo "NVIDIA driver not found."
+  lspci 2>/dev/null | grep -i vga
+fi

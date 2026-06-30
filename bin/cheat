@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# cheat — search cheat.sh
+if [[ -z "$1" ]]; then echo "Usage: cheat <topic>"; exit 1; fi
+curl -s "cheat.sh/$1"

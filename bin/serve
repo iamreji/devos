@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# serve — quick HTTP file server
+port="${1:-8000}"
+if command -v python3 &>/dev/null; then
+  python3 -m http.server "$port"
+elif command -v python &>/dev/null; then
+  python -m SimpleHTTPServer "$port"
+else
+  echo "Python not found"; exit 1
+fi

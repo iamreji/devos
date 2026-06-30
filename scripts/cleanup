@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# cleanup — quick system cleaner
+echo "Cleaning apt..."
+sudo apt-get autoremove -y -qq && sudo apt-get autoclean -qq
+echo "Vacuuming journal..."
+sudo journalctl --vacuum-time=7d 2>/dev/null || true
+echo "Cleaning docker..."
+docker system prune -af 2>/dev/null || true
+echo "Done."

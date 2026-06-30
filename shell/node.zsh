@@ -1,0 +1,63 @@
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ Node / npm / Yarn / pnpm Aliases                                │
+# └─────────────────────────────────────────────────────────────────┘
+
+# --- npm -------------------------------------------------------------
+alias nd="npm run dev"
+alias nb="npm run build"
+alias ns="npm start"
+alias ni="npm install"
+alias nid="npm install -D"
+alias nig="npm install -g"
+alias nr="npm run"
+alias nt="npm test"
+alias nlint="npm run lint"
+alias nfmt="npm run format"
+alias nclean="rm -rf node_modules package-lock.json && npm install"
+alias npub="npm publish"
+alias nup="npm update"
+alias nout="npm outdated"
+
+# --- Yarn ------------------------------------------------------------
+alias ya="yarn add"
+alias yad="yarn add -D"
+alias yag="yarn global add"
+alias yb="yarn build"
+alias yd="yarn dev"
+alias ys="yarn start"
+alias yt="yarn test"
+alias yl="yarn lint"
+alias yf="yarn format"
+alias yc="yarn clean"
+alias yu="yarn upgrade"
+alias yout="yarn outdated"
+
+# --- pnpm ------------------------------------------------------------
+alias pnpma="pnpm add"
+alias pnpmad="pnpm add -D"
+alias pnpmag="pnpm add -g"
+alias pnpmb="pnpm build"
+alias pnpmd="pnpm dev"
+alias pnpms="pnpm start"
+alias pnpmt="pnpm test"
+alias pnpml="pnpm lint"
+alias pnpmf="pnpm format"
+alias pnpmc="pnpm clean"
+alias pnpmu="pnpm update"
+alias pnpmout="pnpm outdated"
+
+# --- TypeScript / JS tools -------------------------------------------
+alias tsc="npx tsc"
+alias tscw="npx tsc --watch"
+alias tsx="npx tsx"
+alias tsnd="npx ts-node-dev"
+alias eslint="npx eslint"
+alias prettier="npx prettier"
+alias jest="npx jest"
+alias vitest="npx vitest"
+alias webpack="npx webpack"
+alias vite="npx vite"
+alias next="npx next"
+alias astro="npx astro"
+alias prisma="npx prisma"
+alias drizzle="npx drizzle-kit"

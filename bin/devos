@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# devos — DevOS command dispatcher
+# Symlink this to /usr/local/bin/devos or add ~/.local/bin/devos
+
+DEVOS_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+export DEVOS_ROOT
+
+_usage() {
+  echo "DevOS — Developer Workstation Bootstrap Framework"
+  echo
+  echo "Usage: devos <command> [options]"
+  echo
+  echo "Commands:"
+  echo "  install   Provision your workstation           (devos install --all)"
+  echo "  doctor    Run system health check              (devos doctor)"
+  echo "  update    Update all installed tools           (devos update)"
+  echo "  backup    Backup dotfiles and configs          (devos backup)"
+  echo "  restore   Restore a backup                    (devos restore [date])"
+  echo "  cleanup   Free disk space and tidy system     (devos cleanup)"
+  echo "  uninstall Remove DevOS                        (devos uninstall [--purge])"
+  echo "  info      Show system information"
+  echo
+  echo "Run 'devos install --help' for install options."
+}
+
+case "${1:-}" in
+  install)
+    shift
+    exec bash "${DEVOS_ROOT}/install/install.sh" "$@"
+    ;;
+  doctor)
+    exec bash "${DEVOS_ROOT}/install/doctor.sh"
+    ;;
+  update)
+    exec bash "${DEVOS_ROOT}/install/update.sh"
+    ;;
+  backup)
+    exec bash "${DEVOS_ROOT}/install/backup.sh"
+    ;;
+  restore)
+    shift
+    exec bash "${DEVOS_ROOT}/install/restore.sh" "$@"
+    ;;
+  cleanup)
+    exec bash "${DEVOS_ROOT}/install/cleanup.sh"
+    ;;
+  uninstall)
+    shift
+    exec bash "${DEVOS_ROOT}/install/uninstall.sh" "$@"
+    ;;
+  info)
+    if command -v fastfetch &>/dev/null; then
+      exec fastfetch
+    else
+      echo "DevOS System Info"
+      echo "  OS:       $(uname -s) $(lsb_release -rs 2>/dev/null || uname -r)"
+      echo "  Arch:      $(uname -m)"
+      echo "  Kernel:    $(uname -r)"
+      echo "  Uptime:    $(uptime -p 2>/dev/null | sed 's/up //')"
+      echo "  Shell:     ${SHELL:-unknown}"
+      echo "  Home:      ${HOME}"
+    fi
+    ;;
+  help|--help|-h)
+    _usage
+    ;;
+  *)
+    _usage
+    ;;
+esac

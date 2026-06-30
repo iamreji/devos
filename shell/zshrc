@@ -1,0 +1,38 @@
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ DevOS Zsh Configuration — Managed by DevOS                     │
+# │ ~/.config/zsh/zshrc                                            │
+# │ Sources: ~/.zshrc → ~/.config/zsh/zshrc                        │
+# └─────────────────────────────────────────────────────────────────┘
+
+# --- XDG Base Directories -------------------------------------------
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# --- Early PATH (set once, dedup later via typeset -U) ---------------
+_DEVOS_ZSH_DIR="${0:A:h}"
+
+# --- Oh-My-Zsh (lazy-loaded for startup speed) -----------------------
+export ZSH="${ZSH:-$HOME/.oh-my-zsh}"
+ZSH_THEME="agnoster"
+plugins=(git z zoxide sudo docker docker-compose)
+
+# Lazy-load oh-my-zsh on first interactive prompt
+_zsh_lazy_omz() {
+  [[ -f "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
+  add-zsh-hook -d precmd _zsh_lazy_omz
+}
+if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _zsh_lazy_omz
+fi
+
+# --- Shell modules (source order matters) ----------------------------
+for _mod in exports history completion aliases functions prompt git docker node rust solana kubernetes terraform utils; do
+  [[ -f "${_DEVOS_ZSH_DIR}/${_mod}.zsh" ]] && source "${_DEVOS_ZSH_DIR}/${_mod}.zsh"
+done
+unset _mod _DEVOS_ZSH_DIR
+
+# --- Final PATH dedup ------------------------------------------------
+typeset -U path PATH

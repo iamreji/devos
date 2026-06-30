@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# dev — DevOS dev command shortcut
+cd "$(dirname "$0")/.." || exit 1
+bash install/install.sh "$@"

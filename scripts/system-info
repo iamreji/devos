@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# system-info — display system information
+echo "OS:       $(uname -s) $(lsb_release -rs 2>/dev/null || uname -r)"
+echo "Kernel:   $(uname -r)"
+echo "CPU:      $(nproc) cores"
+echo "Memory:   $(awk '/MemTotal/ {printf "%d GB", $2/1024/1024}' /proc/meminfo)"
+echo "Disk:     $(df -h / | awk 'NR==2 {print $4}') free"
+echo "Shell:    ${SHELL:-unknown}"
+echo "Desktop:  ${XDG_SESSION_TYPE:-unknown}"
+echo "Uptime:   $(uptime -p 2>/dev/null | sed 's/up //')"
+if command -v nvidia-smi &>/dev/null; then
+  echo "GPU:      $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -1)"
+fi

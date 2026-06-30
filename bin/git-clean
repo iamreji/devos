@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# git-clean — prune merged local branches
+git branch --merged | grep -v '\*\|main\|master\|develop' | xargs -n 1 git branch -d 2>/dev/null
+echo "Merged branches cleaned."

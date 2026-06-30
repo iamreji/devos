@@ -1,0 +1,35 @@
+[user]
+	name = DevOS User
+	email = user@example.com
+[init]
+	defaultBranch = main
+[core]
+	editor = code --wait
+	autocrlf = input
+[credential "https://github.com"]
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = !/usr/bin/gh auth git-credential
+[pull]
+	rebase = true
+[push]
+	default = current
+	autoSetupRemote = true
+[fetch]
+	prune = true
+[merge]
+	conflictstyle = diff3
+[rebase]
+	autoStash = true
+[diff]
+	colorMoved = default
+[rerere]
+	enabled = true
+[commit]
+	gpgSign = false
+[tag]
+	gpgSign = false
+[help]
+	autocorrect = 10
+[url "git@github.com:"]
+	insteadOf = https://github.com/

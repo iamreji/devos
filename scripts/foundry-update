@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# foundry-update — update Foundry (forge, cast, anvil)
+if command -v foundryup &>/dev/null; then
+  foundryup && echo "Foundry updated."
+else
+  echo "Foundry not installed. Run: devos install --module foundry"
+fi

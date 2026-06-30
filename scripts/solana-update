@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# solana-update — update Solana CLI
+cmd="$(command -v agave-install 2>/dev/null || command -v solana-install 2>/dev/null)"
+if [[ -n "$cmd" ]]; then
+  "$cmd" update && echo "Solana updated."
+else
+  echo "Solana not installed. Run: devos install --module solana"
+fi

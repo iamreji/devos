@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# ports — show listening ports
+netstat -tulnp 2>/dev/null || ss -tulnp

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# dev — auto-detect project type and start dev server
+if [[ -f "package.json" ]]; then
+  if grep -q '"dev"' package.json; then npm run dev
+  elif grep -q '"start"' package.json; then npm start
+  else echo "No dev/start script in package.json"; exit 1; fi
+elif [[ -f "Cargo.toml" ]]; then cargo run
+elif [[ -f "Makefile" ]]; then make dev
+else echo "No recognized project type found"; exit 1; fi

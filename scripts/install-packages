@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# install-packages — batch package installer for apt
+if [[ $# -eq 0 ]]; then echo "Usage: install-packages <pkg1> [pkg2 ...]"; exit 1; fi
+sudo apt-get update -qq
+sudo apt-get install -y "$@"
+echo "Installed: $*"

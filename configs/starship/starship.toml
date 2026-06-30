@@ -1,0 +1,166 @@
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ Starship Prompt Configuration                                    │
+# │ ~/.config/starship.toml                                          │
+# └─────────────────────────────────────────────────────────────────┘
+
+format = """
+[](#9c6cff)\
+$os\
+$username\
+[](bg:#4B0082 fg:#9c6cff)\
+$directory\
+[](fg:#4B0082 bg:#744B9C)\
+$git_branch\
+$git_status\
+[](fg:#744B9C bg:#5F5F87)\
+$nodejs\
+$rust\
+$python\
+$docker_context\
+[](fg:#5F5F87 bg:#4A5473)\
+$aws\
+$gcp\
+$kubernetes\
+[](fg:#4A5473 bg:#353A50)\
+$fill\
+$cmd_duration\
+$time\
+$battery\
+[](fg:#353A50)\
+$line_break\
+$character\
+"""
+
+right_format = "$status"
+
+# --- Prompt character ------------------------------------------------
+[character]
+success_symbol = "[▶](bold green)"
+error_symbol = "[▶](bold red)"
+vimcmd_symbol = "[◀](bold blue)"
+
+# --- OS ---------------------------------------------------------------
+[os]
+disabled = false
+format = "[ $symbol](bold white)"
+[os.symbols]
+Arch = "🎗️ "
+Ubuntu = "🐧 "
+Debian = "🐧 "
+Macos = "🍏 "
+Windows = "🪟 "
+
+# --- Directory --------------------------------------------------------
+[directory]
+style = "fg:#ffffff bg:#4B0082 bold"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+home_symbol = "~"
+
+# --- Username ---------------------------------------------------------
+[username]
+style_user = "fg:#ffffff bg:#9c6cff bold"
+format = "[ $user ]($style)"
+
+# --- Git Branch -------------------------------------------------------
+[git_branch]
+symbol = "🌿 "
+style = "fg:#ffffff bg:#744B9C bold"
+format = "[ $symbol$branch ]($style)"
+
+# --- Git Status -------------------------------------------------------
+[git_status]
+style = "fg:#ffffff bg:#744B9C"
+format = '[\($all_status$ahead_behind\)]($style)'
+conflicted = "🏳 "
+ahead = "⇡\${count} "
+behind = "⇣\${count} "
+diverged = "⇕⇡\${ahead_count}⇣\${behind_count} "
+untracked = "?\${count} "
+stashed = "📦 "
+modified = "!\${count} "
+staged = "+\${count} "
+renamed = "»\${count} "
+deleted = "✘\${count} "
+
+# --- Node.js ----------------------------------------------------------
+[nodejs]
+symbol = "⬢ "
+style = "fg:#ffffff bg:#5F5F87 bold"
+format = "[ $symbol(\$version) ]($style)"
+
+# --- Rust -------------------------------------------------------------
+[rust]
+symbol = "🦀 "
+style = "fg:#ffffff bg:#5F5F87 bold"
+format = "[ $symbol(\$version) ]($style)"
+
+# --- Python ------------------------------------------------------------
+[python]
+symbol = "🐍 "
+style = "fg:#ffffff bg:#5F5F87 bold"
+format = "[ $symbol(\$version) ]($style)"
+
+# --- Docker ------------------------------------------------------------
+[docker_context]
+symbol = "🐳 "
+style = "fg:#ffffff bg:#5F5F87 bold"
+format = "[ $symbol$context ]($style)"
+
+# --- AWS ---------------------------------------------------------------
+[aws]
+symbol = "☁️  "
+style = "fg:#ffffff bg:#4A5473 bold"
+format = "[ $symbol$profile ]($style)"
+
+# --- GCP ---------------------------------------------------------------
+[gcp]
+symbol = "🌐 "
+style = "fg:#ffffff bg:#4A5473 bold"
+format = "[ $symbol$project ]($style)"
+
+# --- Kubernetes --------------------------------------------------------
+[kubernetes]
+symbol = "☸ "
+style = "fg:#ffffff bg:#4A5473 bold"
+format = "[ $symbol$context]( $style)"
+
+# --- Command Duration --------------------------------------------------
+[cmd_duration]
+min_time = 2000
+format = "⏱ [$duration](bold yellow) "
+
+# --- Time --------------------------------------------------------------
+[time]
+disabled = false
+format = "[ $time ](fg:#ffffff bg:#353A50 bold)"
+time_format = "%R"
+
+# --- Battery -----------------------------------------------------------
+[battery]
+disabled = false
+format = "[ $symbol$percentage ](fg:#ffffff bg:#353A50 bold)"
+[[battery.display]]
+threshold = 20
+style = "bold red"
+
+# --- Status ------------------------------------------------------------
+[status]
+disabled = false
+format = "[$status](fg:#353A50 bold)"
+symbol = "🔥"
+success_symbol = ""
+not_executable_symbol = "🚫"
+not_found_symbol = "🔍"
+signal_symbol = "⚡"
+
+# --- Line Break --------------------------------------------------------
+[line_break]
+disabled = false
+
+# --- Shell -------------------------------------------------------------
+[shell]
+disabled = false
+zsh_indicator = ""
+bash_indicator = ""

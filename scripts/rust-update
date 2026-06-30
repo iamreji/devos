@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# rust-update — update Rust toolchain and cargo crates
+rustup update stable 2>/dev/null && echo "Rust updated."
+cargo install-update -a 2>/dev/null && echo "Cargo crates updated." || echo "cargo-update not found. Install with: cargo install cargo-update"

@@ -1,0 +1,23 @@
+name: Format Check
+on:
+  push:
+    paths: ['**.sh', '**.md', '**.yml', '**.yaml']
+  pull_request:
+
+jobs:
+  all-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          format: gcc
+          severity: warning
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          format: standard

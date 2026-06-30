@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# backup — quick dotfiles backup
+backup_dir="$HOME/devos-backup-$(date +%Y%m%d)"
+mkdir -p "$backup_dir"
+for f in .zshrc .zshenv .gitconfig .gitignore_global .tmux.conf; do
+  [[ -f "$HOME/$f" ]] && cp "$HOME/$f" "$backup_dir/"
+done
+for d in .config/zsh .config/starship .config/kitty .config/ghostty .config/nvim .config/fastfetch; do
+  [[ -d "$HOME/$d" ]] && cp -r "$HOME/$d" "$backup_dir/${d##*/}"
+done
+echo "Backup created: $backup_dir"

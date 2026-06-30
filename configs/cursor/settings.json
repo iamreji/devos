@@ -1,0 +1,27 @@
+{
+    "files.autoSave": "afterDelay",
+    "editor.fontFamily": "FiraCode Nerd Font Mono",
+    "editor.fontSize": 14,
+    "editor.tabSize": 2,
+    "editor.minimap.enabled": false,
+    "editor.inlineSuggest.enabled": false,
+    "terminal.integrated.fontFamily": "FiraCode Nerd Font Mono",
+    "terminal.integrated.fontSize": 13,
+    "terminal.integrated.lineHeight": 1,
+    "workbench.colorTheme": "Ayu Dark Bordered",
+    "workbench.iconTheme": "material-icon-theme",
+    "workbench.statusBar.visible": false,
+    "workbench.editor.empty.hint": "hidden",
+    "workbench.secondarySideBar.defaultVisibility": "hidden",
+    "explorer.confirmDragAndDrop": false,
+    "window.menuBarVisibility": "toggle",
+    "telemetry.telemetryLevel": "off",
+    "[javascript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "typescript.suggest.includeAutomaticOptionalChainCompletions": false,
+    "cursor.cpp.enablePartialAccepts": true
+}
