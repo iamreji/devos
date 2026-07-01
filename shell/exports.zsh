@@ -2,6 +2,22 @@
 # │ Environment Variables & PATH                                     │
 # └─────────────────────────────────────────────────────────────────┘
 
+# --- Path deduplication helper (needed before other sources) --------
+dedup_path() {
+  local var_name="$1"
+  local entry="$2"
+  local current="${(P)var_name:-}"
+  current=":${current}:"
+  current="${current//:$entry:/:}"
+  current="${current#:}"
+  current="${current%:}"
+  if [[ -z "$current" ]]; then
+    printf -v "$var_name" '%s' "$entry"
+  else
+    printf -v "$var_name" '%s' "$entry:$current"
+  fi
+}
+
 # --- Editors & Tools -------------------------------------------------
 export EDITOR="${EDITOR:-code}"
 export VISUAL="${VISUAL:-code}"
@@ -53,6 +69,37 @@ dedup_path PATH "$HOME/bin"
 
 # --- SDKMAN (if installed) -------------------------------------------
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# --- Python / pyenv (lazy-loaded) ------------------------------------
+export PYENV_ROOT="$HOME/.pyenv"
+_pyenv_lazy_load() {
+  unset -f pyenv python pip
+  [[ -d "$PYENV_ROOT/bin" ]] && dedup_path PATH "$PYENV_ROOT/bin"
+  eval "$(pyenv init - 2>/dev/null)" 2>/dev/null || true
+}
+pyenv() { _pyenv_lazy_load; pyenv "$@"; }
+python() { _pyenv_lazy_load; python "$@"; }
+pip() { _pyenv_lazy_load; pip "$@"; }
+
+# --- Go (lazy-loaded) -------------------------------------------------
+export GOPATH="$HOME/go"
+_go_lazy_load() {
+  unset -f go
+  dedup_path PATH "/usr/local/go/bin"
+  dedup_path PATH "$GOPATH/bin"
+}
+go() { _go_lazy_load; go "$@"; }
+
+# --- AWS CLI (lazy-loaded) -------------------------------------------
+_aws_lazy_load() { unset -f aws; }
+aws() { command aws "$@"; }
+
+# --- gcloud (lazy-loaded) --------------------------------------------
+_gcloud_lazy_load() { unset -f gcloud; }
+gcloud() { command gcloud "$@"; }
+
+# --- Kubernetes ---------------------------------------
+[[ -f "$HOME/.krew/bin" ]] && dedup_path PATH "$HOME/.krew/bin"
 
 # --- GPG TTY ---------------------------------------------------------
 export GPG_TTY="${GPG_TTY:-$(tty 2>/dev/null || echo '')}"

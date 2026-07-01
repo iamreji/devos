@@ -50,9 +50,9 @@ alias myip="curl -s https://ipinfo.io/ip"
 alias ports="netstat -tulnp"
 alias speed="curl -s https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py | python -"
 
-# --- zoxide -----------------------------------------------------------
+# --- zoxide (replaces cd with fuzzy matching) -------------------------
 if command -v zoxide &>/dev/null; then
-  eval "$(zoxide init zsh)"
+  eval "$(zoxide init zsh --cmd cd)"
 fi
 
 # --- ngrok ------------------------------------------------------------

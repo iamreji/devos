@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
+# -*- mode: bash; tab-width: 2; indent-tabs-mode: nil; -*-
+# ===========================================================================
 # restore.sh — Restore a DevOS backup
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
-fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
+# ===========================================================================
 
-restore_run() {
+set -Eeuo pipefail
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
+source "${DEVOS_ROOT}/install/rollback.sh"
+
+# --- Main --------------------------------------------------------------------
+main() {
   log_section "DevOS Restore"
 
   local target="${1:-latest}"
@@ -86,6 +89,21 @@ restore_run() {
     tar -xzf "$tempdir/oh-my-zsh.tar.gz" -C "$HOME"
   fi
 
+  [[ -f "$tempdir/pre-commit-config.yaml" ]] && { cp "$tempdir/pre-commit-config.yaml" "$HOME/.pre-commit-config.yaml"; log_ok "pre-commit config restored"; }
+  [[ -f "$tempdir/kube-config" ]] && { mkdir -p "$HOME/.kube"; cp "$tempdir/kube-config" "$HOME/.kube/config"; log_ok "Kube config restored"; }
+  [[ -f "$tempdir/aws" ]] && { mkdir -p "$HOME"; cp -r "$tempdir/aws" "$HOME/.aws"; log_ok "AWS config restored"; }
+  [[ -f "$tempdir/gcloud.tar.gz" ]] && { mkdir -p "$HOME/.config"; tar -xzf "$tempdir/gcloud.tar.gz" -C "$HOME/.config"; log_ok "GCloud config restored"; }
+  [[ -f "$tempdir/wallpapers.tar.gz" ]] && { mkdir -p "$HOME/Pictures"; tar -xzf "$tempdir/wallpapers.tar.gz" -C "$HOME/Pictures"; log_ok "Wallpapers restored"; }
+
+  # Restore pipx packages
+  if [[ -f "$tempdir/pipx-packages.txt" ]] && command -v pipx &>/dev/null; then
+    log_info "Restoring pipx packages..."
+    grep -oP 'package \K\S+' "$tempdir/pipx-packages.txt" 2>/dev/null | while read -r pkg; do
+      pipx install "$pkg" 2>/dev/null || true
+    done
+    log_ok "pipx packages restored"
+  fi
+
   rm -rf "$tempdir"
 
   log_section "Restore Complete"
@@ -93,6 +111,4 @@ restore_run() {
   log_warn "You may need to restart your shell for changes to take effect."
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  restore_run "$@"
-fi
+main "$@"

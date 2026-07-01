@@ -7,12 +7,9 @@
 # Handles resume-from on failure and tracks progress across phases.
 # ===========================================================================
 
-if [[ -z "${DEVOS_ROOT:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  export DEVOS_ROOT
-fi
+set -Eeuo pipefail
 
-source "${DEVOS_ROOT}/install/common.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 source "${DEVOS_ROOT}/install/logger.sh"
 
 # --- Run a single module ------------------------------------------------
@@ -75,7 +72,9 @@ bootstrap_all() {
   return 0
 }
 
-# Direct invocation support
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+# --- Main --------------------------------------------------------------------
+main() {
   bootstrap_all "$@"
-fi
+}
+
+main "$@"

@@ -5,15 +5,22 @@
 #
 # Every module can register rollback actions. If the installer is interrupted
 # or a module fails, actions execute in reverse (LIFO) order to unwind state.
+#
+# Safe to source multiple times.
 # ---------------------------------------------------------------------------
 
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
+set -Eeuo pipefail
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
+
+# --- Load guard for sourcing -------------------------------------------------
+if [[ -n "${DEVOS_ROLLBACK_LOADED:-}" ]]; then
+  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    return
+  fi
 fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
+readonly DEVOS_ROLLBACK_LOADED=1
 
 # --- Rollback registry state ------------------------------------------------
 ROLLBACK_FILE="${DEVOS_DATA}/rollback.txt"
@@ -39,17 +46,6 @@ _rollback_persist() {
 }
 
 # --- Register a rollback action --------------------------------------------
-# rollback_register "action_description"
-#
-# Valid actions:
-#   file:restore:/path/to/backup    - Restore a backed-up file
-#   pkg:remove:pkgname              - apt-get remove --purge pkgname
-#   dir:remove:/path                - Recursively delete a directory
-#   cmd:shell_command               - Execute an arbitrary shell command
-#   snap:remove:snapname            - Remove a snap package
-#   flatpak:remove:appid            - Remove a flatpak
-#   pipx:remove:pkgname             - pipx uninstall
-#   cargo:remove:crate              - cargo uninstall
 rollback_register() {
   local action="$1"
   _DEVOS_ROLLBACK_ACTIONS+=("$action")
@@ -127,7 +123,6 @@ rollback_clear() {
 
 # --- Transaction helpers ---------------------------------------------------
 # Backup a file before modifying it (registers rollback automatically)
-# backup_file /path/to/file
 backup_file() {
   local src="$1"
   if [[ -f "$src" ]]; then
@@ -154,5 +149,11 @@ rollback_trap_enable() {
   trap _rollback_trap ERR INT TERM
 }
 
-DEVOS_ROLLBACK_LOADED=1
-readonly DEVOS_ROLLBACK_LOADED
+# --- Main (only runs when executed directly) ---------------------------------
+main() {
+  echo "rollback.sh is a library — source it from other scripts."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

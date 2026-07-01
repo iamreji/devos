@@ -5,18 +5,23 @@
 #
 # Handles apt, snap, flatpak, cargo, npm, pipx installations with idempotency
 # checks, dependency ordering, parallel-safe install marking, and retry logic.
+#
+# Safe to source multiple times.
 # ---------------------------------------------------------------------------
 
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
+set -Eeuo pipefail
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
+source "${DEVOS_ROOT}/install/rollback.sh"
+
+# --- Load guard for sourcing -------------------------------------------------
+if [[ -n "${DEVOS_PACKAGES_LOADED:-}" ]]; then
+  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    return
+  fi
 fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
-if [[ -z "${DEVOS_ROLLBACK_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/rollback.sh"
-fi
+readonly DEVOS_PACKAGES_LOADED=1
 
 # --- State tracking ---------------------------------------------------------
 _PKG_INSTALLED_FILE="${DEVOS_DATA}/installed_packages.txt"
@@ -213,7 +218,6 @@ pkg_has_cmd() {
 }
 
 # --- Dependency graph: ensure prerequisite packages before a module ---------
-# require_apt "build-essential" "pkg-config" — installs if missing
 require_apt() {
   local missing=()
   for pkg in "$@"; do
@@ -226,5 +230,11 @@ require_apt() {
   fi
 }
 
-DEVOS_PACKAGES_LOADED=1
-readonly DEVOS_PACKAGES_LOADED
+# --- Main (only runs when executed directly) ---------------------------------
+main() {
+  echo "packages.sh is a library — source it from other scripts."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

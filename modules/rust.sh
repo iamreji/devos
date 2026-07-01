@@ -54,5 +54,3 @@ install_rust() {
   pkg_mark_installed "mod:cargo"
   log_section "Rust Setup Complete"
 }
-
-install_cargo() { install_rust; }

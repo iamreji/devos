@@ -3,32 +3,59 @@
 # ---------------------------------------------------------------------------
 # common.sh — Shared utilities, constants, and strict-mode setup for DevOS
 #
+# Load guard — idempotent. Safe to source multiple times.
 # Source this file in every DevOS script to inherit:
 #   - Strict error handling (set -Eeuo pipefail)
+#   - DEVOS_ROOT and standard directory exports
 #   - Color constants for terminal output
 #   - OS / architecture detection
 #   - Path and user utilities
 #   - Trap handlers for cleanup and rollback
+#   - All shared helper functions
 #
-# Usage:
-#   source "${DEVOS_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/common.sh"
+# Usage (in a script inside the install/ directory):
+#   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+#
+# Usage (in a script outside install/):
+#   source "${DEVOS_ROOT}/install/common.sh"
 # ---------------------------------------------------------------------------
+
+# --- Load guard ------------------------------------------------------------
+[[ -n "${DEVOS_COMMON_LOADED:-}" ]] && return
+readonly DEVOS_COMMON_LOADED=1
 
 set -Eeuo pipefail
 
-# --- Global root -----------------------------------------------------------
-DEVOS_ROOT="${DEVOS_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-readonly DEVOS_ROOT
+# --- DEVOS_ROOT — initialized only once ------------------------------------
+# This is the ONLY place DEVOS_ROOT is defined. Every other script simply
+# sources common.sh and inherits this value.
+if [[ -z "${DEVOS_ROOT:-}" ]]; then
+  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+  if [[ -z "$DEVOS_ROOT" ]]; then
+    echo "Error: Could not determine DevOS root directory" >&2
+    exit 1
+  fi
+  export DEVOS_ROOT
+  readonly DEVOS_ROOT
+fi
 
-# --- User and system paths -------------------------------------------------
+# --- Standard directory exports (requirement 5) ----------------------------
+# Backward-compatible path variables
 DEVOS_HOME="${DEVOS_HOME:-$HOME}"
 DEVOS_DATA="${DEVOS_DATA:-$DEVOS_HOME/.local/share/devos}"
 DEVOS_CONFIG="${DEVOS_CONFIG:-$DEVOS_HOME/.config/devos}"
 DEVOS_CACHE="${DEVOS_CACHE:-$DEVOS_HOME/.cache/devos}"
 DEVOS_LOG="${DEVOS_LOG:-$DEVOS_DATA/install.log}"
-readonly DEVOS_HOME DEVOS_DATA DEVOS_CONFIG DEVOS_CACHE
+readonly DEVOS_HOME DEVOS_DATA DEVOS_CONFIG DEVOS_CACHE DEVOS_LOG
 
-mkdir -p "$DEVOS_DATA" "$DEVOS_CONFIG" "$DEVOS_CACHE"
+# Canonical exports
+export LOG_DIR="${LOG_DIR:-$DEVOS_DATA/logs}"
+export CACHE_DIR="${CACHE_DIR:-$DEVOS_CACHE}"
+export CONFIG_DIR="${CONFIG_DIR:-$DEVOS_CONFIG}"
+export TEMP_DIR="${TEMP_DIR:-$DEVOS_CACHE/tmp}"
+export VERSION="${VERSION:-0.1.0}"
+
+mkdir -p "$LOG_DIR" "$CACHE_DIR" "$CONFIG_DIR" "$TEMP_DIR"
 
 # --- OS detection ----------------------------------------------------------
 DEVOS_OS="$(uname -s)"
@@ -42,8 +69,8 @@ if command -v lsb_release &>/dev/null; then
   _devos_os_id="$(lsb_release -is 2>/dev/null || true)"
   _devos_os_version_id="$(lsb_release -rs 2>/dev/null || true)"
 elif [[ -r /etc/os-release ]]; then
-  _devos_os_id="$(. /etc/os-release && echo "${ID:-}")"
-  _devos_os_version_id="$(. /etc/os-release && echo "${VERSION_ID:-}")"
+  _devos_os_id="$( . /etc/os-release && echo "${ID:-}" )"
+  _devos_os_version_id="$( . /etc/os-release && echo "${VERSION_ID:-}" )"
 fi
 DEVOS_OS_ID="${_devos_os_id,,}"
 DEVOS_OS_VERSION="${_devos_os_version_id}"
@@ -89,6 +116,7 @@ fi
 _is_root() { [[ "${EUID:-$(id -u)}" -eq 0 ]]; }
 
 # --- User confirmation ------------------------------------------------------
+# Usage: prompt_confirm "Continue?" && do_stuff
 prompt_confirm() {
   local msg="${1:-Continue?}"
   local answer
@@ -97,6 +125,7 @@ prompt_confirm() {
 }
 
 # --- Path deduplication -----------------------------------------------------
+# Usage: dedup_path PATH "$HOME/.local/bin"
 dedup_path() {
   local var_name="$1"
   local entry="$2"
@@ -120,6 +149,27 @@ mkdir_safe() {
   fi
 }
 
+# --- File size helpers ------------------------------------------------------
+# Get size in bytes of a file or directory
+_devos_size_bytes() {
+  local path="$1"
+  if [[ -e "$path" ]]; then
+    du -sb "$path" 2>/dev/null | cut -f1 || echo 0
+  else
+    echo 0
+  fi
+}
+
+# Format bytes into human-readable form
+_devos_format_bytes() {
+  local bytes="$1"
+  if command -v numfmt &>/dev/null; then
+    numfmt --to=iec-i --suffix=B "$bytes"
+  else
+    echo "$bytes bytes"
+  fi
+}
+
 # --- Trap stack for cleanup -------------------------------------------------
 declare -a _DEVOS_CLEANUP_STACK=()
 _add_cleanup() { _DEVOS_CLEANUP_STACK+=("$*"); }
@@ -136,11 +186,12 @@ trap _run_cleanup EXIT INT TERM
 
 # --- Temporary files --------------------------------------------------------
 _devos_mktemp() {
-  local template="${1:-tmp.XXXXXX}"
-  mktemp -t "devos-${template}" 2>/dev/null || mktemp "/tmp/devos-${template}"
+  local suffix="${1:-tmp}"
+  mktemp -t "devos-${suffix}.XXXXXX" 2>/dev/null || mktemp "/tmp/devos-${suffix}.XXXXXX"
 }
 
 # --- Retry command ----------------------------------------------------------
+# retry 3 curl -fsSL https://example.com
 retry() {
   local max_attempts="$1"; shift
   local attempt=1 delay=2
@@ -187,6 +238,7 @@ _is_true() {
 }
 
 # --- Version comparison -----------------------------------------------------
+# ver_ge "1.2.0" "1.0.0"  → true (1.2.0 >= 1.0.0)
 ver_ge() { printf '%s\n%s' "$2" "$1" | sort -V -C; }
 
 # --- CPU count --------------------------------------------------------------
@@ -218,6 +270,3 @@ _spinner() {
   done
   printf '\r    \r' >&2
 }
-
-DEVOS_COMMON_LOADED=1
-readonly DEVOS_COMMON_LOADED

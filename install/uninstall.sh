@@ -1,28 +1,27 @@
 #!/usr/bin/env bash
+# -*- mode: bash; tab-width: 2; indent-tabs-mode: nil; -*-
+# ===========================================================================
 # uninstall.sh — DevOS uninstall / reverse provisioning
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
-fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
+# ===========================================================================
 
-UNINSTALL_PURGE=0
-[[ "${1:-}" == "--purge" ]] && UNINSTALL_PURGE=1
+set -Eeuo pipefail
 
-_uninstall_confirm() {
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
+source "${DEVOS_ROOT}/install/rollback.sh"
+
+# --- Main --------------------------------------------------------------------
+main() {
+  local UNINSTALL_PURGE=0
+  [[ "${1:-}" == "--purge" ]] && UNINSTALL_PURGE=1
+  log_section "DevOS Uninstall"
+
   if [[ $UNINSTALL_PURGE -eq 1 ]]; then
     log_warn "PURGE MODE: This will remove ALL DevOS-installed packages, configs, and data."
   else
     log_warn "This will remove DevOS-installed packages and restore backups."
   fi
   prompt_confirm "Are you sure you want to uninstall DevOS?" || { log_info "Cancelled."; exit 0; }
-}
-
-uninstall_run() {
-  log_section "DevOS Uninstall"
-  _uninstall_confirm
 
   local installed="${DEVOS_DATA}/installed_packages.txt"
   if [[ -r "$installed" ]]; then
@@ -81,11 +80,6 @@ uninstall_run() {
     fi
   done
 
-  # Remove DevOS stub from .zshrc if present
-  if [[ -f "$HOME/.zshrc" ]] && grep -q '# Managed by DevOS' "$HOME/.zshrc" 2>/dev/null; then
-    log_info "Restoring .zshrc backup"
-  fi
-
   # Clean apt
   log_info "Running apt autoremove..."
   sudo apt-get autoremove -y -qq 2>/dev/null || true
@@ -103,6 +97,4 @@ uninstall_run() {
   log_info "  - NVM/Bun/Solana toolchains (if DevOS-installed)"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  uninstall_run
-fi
+main "$@"

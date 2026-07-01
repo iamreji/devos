@@ -5,16 +5,23 @@
 #
 # Sources common.sh and provides timestamped, colour-coded log output
 # to both stderr and the session log file.
+#
+# Safe to source multiple times.
 # ---------------------------------------------------------------------------
 
-# Ensure common.sh is loaded
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
+set -Eeuo pipefail
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+# --- Load guard for sourcing -------------------------------------------------
+if [[ -n "${DEVOS_LOGGER_LOADED:-}" ]]; then
+  if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    return
+  fi
 fi
+readonly DEVOS_LOGGER_LOADED=1
 
 # --- Log file -----------------------------------------------------------------
-DEVOS_LOG="${DEVOS_LOG:-$DEVOS_DATA/install.log}"
 mkdir -p "$(dirname "$DEVOS_LOG")"
 touch "$DEVOS_LOG"
 
@@ -22,6 +29,11 @@ touch "$DEVOS_LOG"
 _now() { date '+%Y-%m-%d %H:%M:%S'; }
 
 # --- Core log functions -------------------------------------------------------
+# Override common.sh fallbacks with timestamped, file-logging versions.
+#
+# Each function writes a colourised line to stderr (for interactive use) and
+# an ISO 8601 timestamped line to the log file.
+
 log_info() {
   local ts
   ts="$(_now)"
@@ -104,5 +116,11 @@ log_check() {
   echo "$(_now) CHECK $check → $status" >> "$DEVOS_LOG"
 }
 
-DEVOS_LOGGER_LOADED=1
-readonly DEVOS_LOGGER_LOADED
+# --- Main (only runs when executed directly) ---------------------------------
+main() {
+  echo "logger.sh is a library — source it from other scripts."
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

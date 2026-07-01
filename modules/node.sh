@@ -57,6 +57,3 @@ install_node() {
   pkg_mark_installed "mod:bun"
   log_section "Node.js Setup Complete"
 }
-
-install_bun() { install_node; }
-install_pnpm() { install_node; }

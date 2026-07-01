@@ -8,8 +8,13 @@ if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then source "${DEVOS_ROOT}/install/logge
 if [[ -z "${DEVOS_PACKAGES_LOADED:-}" ]]; then source "${DEVOS_ROOT}/install/packages.sh"; fi
 
 install_desktop() {
-  install_gnome
-  install_wayland
+  # Delegate to standalone modules if they exist
+  local gnome_script="${DEVOS_ROOT}/modules/gnome.sh"
+  local wayland_script="${DEVOS_ROOT}/modules/wayland.sh"
+
+  if [[ -f "$gnome_script" ]]; then source "$gnome_script"; install_gnome; fi
+  if [[ -f "$wayland_script" ]]; then source "$wayland_script"; install_wayland; fi
+
   pkg_apt_install_batch btop fastfetch tmux
 
   # btop config
@@ -32,58 +37,28 @@ install_desktop() {
     log_ok "tmux config deployed"
   fi
 
+  # Tmux Plugin Manager (tpm)
+  local tpm_dir="$HOME/.tmux/plugins/tpm"
+  if [[ ! -d "$tpm_dir" ]]; then
+    log_info "Installing Tmux Plugin Manager..."
+    mkdir -p "$HOME/.tmux/plugins"
+    git clone https://github.com/tmux-plugins/tpm "$tpm_dir" 2>/dev/null || true
+    rollback_register "dir:remove:$tpm_dir"
+    log_ok "tpm installed"
+  else
+    log_info "tpm already installed"
+  fi
+
+  # Install tmux plugins (run in background, tpm may not be in PATH yet)
+  if [[ -d "$tpm_dir" ]] && [[ -f "$HOME/.tmux.conf" ]]; then
+    # Install plugins by running tpm's install script directly
+    if [[ -f "${tpm_dir}/scripts/install_plugins.sh" ]]; then
+      TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins/" \
+        bash "${tpm_dir}/scripts/install_plugins.sh" 2>/dev/null || true
+      log_ok "Tmux plugins installed (prefix + I to verify)"
+    fi
+  fi
+
   pkg_mark_installed "mod:desktop"
   log_section "Desktop Setup Complete"
-}
-
-install_gnome() {
-  log_section "GNOME Desktop"
-
-  if ! command -v gnome-shell &>/dev/null; then
-    log_info "GNOME not detected. Skipping GNOME tweaks."
-    return 0
-  fi
-
-  pkg_apt_install_batch gnome-tweaks gnome-shell-extensions chrome-gnome-shell
-
-  # Dark theme
-  gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
-  gsettings set org.gnome.desktop.interface gtk-theme Yaru-dark 2>/dev/null || true
-  log_ok "Dark theme enabled"
-
-  # Dock
-  gsettings set org.gnome.shell.extensions.dash-to-dock dock-position BOTTOM 2>/dev/null || true
-  gsettings set org.gnome.shell.extensions.dash-to-dock autohide true 2>/dev/null || true
-  gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed false 2>/dev/null || true
-  gsettings set org.gnome.shell.extensions.dash-to-dock extend-height false 2>/dev/null || true
-  log_ok "Dock configured"
-
-  # Animations
-  gsettings set org.gnome.desktop.interface enable-animations false 2>/dev/null || true
-  log_ok "Animations disabled"
-
-  # Tap to click
-  gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true 2>/dev/null || true
-
-  pkg_mark_installed "mod:gnome"
-  log_section "GNOME Setup Complete"
-}
-
-install_wayland() {
-  log_section "Wayland Setup"
-
-  if [[ "$XDG_SESSION_TYPE" != "wayland" ]]; then
-    log_warn "Wayland session not active. Skipping Wayland utilities."
-    return 0
-  fi
-
-  pkg_apt_install_batch wl-clipboard grim slurp
-
-  # Environment for Wayland
-  export ELECTRON_OZONE_PLATFORM_HINT=auto
-  export MOZ_ENABLE_WAYLAND=1
-
-  log_ok "Wayland utilities installed"
-
-  pkg_mark_installed "mod:wayland"
 }

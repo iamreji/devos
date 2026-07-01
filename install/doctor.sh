@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
+# -*- mode: bash; tab-width: 2; indent-tabs-mode: nil; -*-
+# ===========================================================================
+# doctor.sh — DevOS system health check
+#
+# Runs diagnostics on the workstation to verify tooling, configs, and
+# system state are ready for DevOS.
+# ===========================================================================
+
 set -Eeuo pipefail
-DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "${DEVOS_ROOT}/install/common.sh" 2>/dev/null || true
-source "${DEVOS_ROOT}/install/logger.sh" 2>/dev/null || true
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
 
 declare -i TOTAL_CHECKS=0
 declare -i PASSED_CHECKS=0
@@ -23,12 +31,14 @@ doctor_check() {
 }
 
 doctor_print_table() {
-  local row IFS_saved="$IFS"
+  local row IFS_saved
+  IFS_saved="$IFS"
   printf '\n%b%s%b\n' "$BOLD" "DOCTOR REPORT" "$RESET"
   printf '  %-45s %-8s %s\n' "CHECK" "STATUS" "DETAIL"
   printf '  %-45s %-8s %s\n' "─────" "──────" "──────"
   for row in "${DOCTOR_TABLE[@]}"; do
     IFS='|'
+    # shellcheck disable=SC2086
     set -- $row
     IFS="$IFS_saved"
     local check="$1" status="$2" detail="$3"
@@ -317,12 +327,146 @@ doctor_desktop() {
   fi
 }
 
-doctor_run() {
+doctor_python() {
+  if command -v python3 &>/dev/null; then
+    doctor_check "Python 3" "pass" "$(python3 --version 2>/dev/null | awk '{print $2}')"
+  else
+    doctor_check "Python 3" "fail" "not installed"
+  fi
+
+  if command -v pyenv &>/dev/null || [[ -d "$HOME/.pyenv" ]]; then
+    doctor_check "pyenv" "pass" "available"
+  else
+    doctor_check "pyenv" "warn" "not installed"
+  fi
+
+  if command -v uv &>/dev/null; then
+    doctor_check "uv" "pass" "$(uv --version 2>/dev/null | awk '{print $2}')"
+  else
+    doctor_check "uv" "warn" "not installed"
+  fi
+
+  if command -v poetry &>/dev/null; then
+    doctor_check "Poetry" "pass" "$(poetry --version 2>/dev/null | awk '{print $3}')"
+  else
+    doctor_check "Poetry" "warn" "not installed"
+  fi
+}
+
+doctor_go() {
+  if command -v go &>/dev/null; then
+    doctor_check "Go" "pass" "$(go version 2>/dev/null | awk '{print $3}')"
+  else
+    doctor_check "Go" "fail" "not installed"
+  fi
+
+  if command -v gopls &>/dev/null; then
+    doctor_check "gopls" "pass" "available"
+  else
+    doctor_check "gopls" "warn" "not installed"
+  fi
+
+  if command -v golangci-lint &>/dev/null; then
+    doctor_check "golangci-lint" "pass" "available"
+  else
+    doctor_check "golangci-lint" "warn" "not installed"
+  fi
+}
+
+doctor_databases() {
+  local pg_running=0 redis_running=0
+
+  if command -v psql &>/dev/null; then
+    doctor_check "PostgreSQL CLI" "pass" "installed"
+    pg_running=1
+  else
+    doctor_check "PostgreSQL CLI" "fail" "not installed"
+  fi
+
+  if command -v redis-cli &>/dev/null; then
+    doctor_check "Redis CLI" "pass" "installed"
+    redis_running=1
+  else
+    doctor_check "Redis CLI" "fail" "not installed"
+  fi
+
+  if systemctl is-active postgresql &>/dev/null 2>&1; then
+    doctor_check "PostgreSQL Service" "pass" "running"
+  elif [[ $pg_running -eq 1 ]]; then
+    doctor_check "PostgreSQL Service" "warn" "not running"
+  else
+    doctor_check "PostgreSQL Service" "skip" "not installed"
+  fi
+
+  if systemctl is-active redis-server &>/dev/null 2>&1; then
+    doctor_check "Redis Service" "pass" "running"
+  elif [[ $redis_running -eq 1 ]]; then
+    doctor_check "Redis Service" "warn" "not running"
+  else
+    doctor_check "Redis Service" "skip" "not installed"
+  fi
+}
+
+doctor_cloud() {
+  if command -v aws &>/dev/null; then
+    local aws_ver
+    aws_ver="$(aws --version 2>/dev/null | head -1 | awk '{print $1}' | tr -d ',')"
+    doctor_check "AWS CLI" "pass" "${aws_ver:-installed}"
+  else
+    doctor_check "AWS CLI" "fail" "not installed"
+  fi
+
+  if command -v gcloud &>/dev/null; then
+    doctor_check "Google Cloud SDK" "pass" "installed"
+  else
+    doctor_check "Google Cloud SDK" "fail" "not installed"
+  fi
+
+  if command -v session-manager-plugin &>/dev/null; then
+    doctor_check "AWS SSM Plugin" "pass" "installed"
+  else
+    doctor_check "AWS SSM Plugin" "warn" "not installed"
+  fi
+}
+
+doctor_kubernetes() {
+  if command -v kubectl &>/dev/null; then
+    doctor_check "kubectl" "pass" "$(kubectl version --client 2>/dev/null | head -1 | awk '{print $3}' | tr -d '"')"
+  else
+    doctor_check "kubectl" "fail" "not installed"
+  fi
+
+  if command -v helm &>/dev/null; then
+    doctor_check "Helm" "pass" "$(helm version --short 2>/dev/null | tr -d 'v')"
+  else
+    doctor_check "Helm" "fail" "not installed"
+  fi
+
+  if command -v k9s &>/dev/null; then
+    doctor_check "k9s" "pass" "installed"
+  else
+    doctor_check "k9s" "warn" "not installed"
+  fi
+
+  if command -v kind &>/dev/null; then
+    doctor_check "kind" "pass" "installed"
+  else
+    doctor_check "kind" "warn" "not installed"
+  fi
+}
+
+# --- Main --------------------------------------------------------------------
+main() {
   doctor_system
   doctor_gpu
   doctor_docker
   doctor_node
   doctor_rust
+  doctor_python
+  doctor_go
+  doctor_databases
+  doctor_cloud
+  doctor_kubernetes
   doctor_solana
   doctor_git
   doctor_ssh
@@ -355,6 +499,4 @@ doctor_run() {
   fi
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  doctor_run
-fi
+main "$@"

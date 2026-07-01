@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
+# -*- mode: bash; tab-width: 2; indent-tabs-mode: nil; -*-
+# ===========================================================================
 # backup.sh — DevOS backup: saves configs, dotfiles, and tool state
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
-fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
+# ===========================================================================
+
+set -Eeuo pipefail
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
 
 BACKUP_DIR="${DEVOS_DATA}/backups/$(date +%Y-%m-%d-%H%M%S)"
 BACKUP_TAR="${BACKUP_DIR}/devos-backup.tar.gz"
 BACKUP_MANIFEST="${BACKUP_DIR}/manifest.txt"
 
-mkdir_safe "$BACKUP_DIR"
-
-backup_run() {
+# --- Main --------------------------------------------------------------------
+main() {
   log_section "DevOS Backup"
   log_info "Backing up to: ${BACKUP_DIR}"
+
+  mkdir_safe "$BACKUP_DIR"
 
   local tempdir
   tempdir="$(_devos_mktemp "backup.XXXXXX")"
@@ -136,6 +138,58 @@ backup_run() {
     echo "btop.conf" >> "$BACKUP_MANIFEST"
   fi
 
+  # pyenv / Python
+  if [[ -d "$HOME/.pyenv" ]]; then
+    cp "$HOME/.pyenv/version" "$tempdir/pyenv-version.txt" 2>/dev/null || true
+    echo "pyenv-version.txt" >> "$BACKUP_MANIFEST"
+  fi
+
+  # Go
+  if [[ -d "$HOME/go/bin" ]]; then
+    ls "$HOME/go/bin" > "$tempdir/go-tools.txt" 2>/dev/null || true
+    echo "go-tools.txt" >> "$BACKUP_MANIFEST"
+  fi
+
+  # pipx
+  if command -v pipx &>/dev/null; then
+    pipx list --short 2>/dev/null > "$tempdir/pipx-packages.txt" || true
+    echo "pipx-packages.txt" >> "$BACKUP_MANIFEST"
+  fi
+
+  # Pre-commit config
+  if [[ -f "$HOME/.pre-commit-config.yaml" ]]; then
+    cp "$HOME/.pre-commit-config.yaml" "$tempdir/pre-commit-config.yaml"
+    echo "pre-commit-config.yaml" >> "$BACKUP_MANIFEST"
+  fi
+
+  # Kube config
+  if [[ -f "$HOME/.kube/config" ]]; then
+    cp "$HOME/.kube/config" "$tempdir/kube-config"
+    echo "kube-config" >> "$BACKUP_MANIFEST"
+  fi
+  if [[ -f "$HOME/.kube/config-bk" ]]; then
+    cp "$HOME/.kube/config-bk" "$tempdir/kube-config-bk"
+    echo "kube-config-bk" >> "$BACKUP_MANIFEST"
+  fi
+
+  # AWS config
+  if [[ -d "$HOME/.aws" ]]; then
+    cp -r "$HOME/.aws" "$tempdir/aws"
+    echo "aws/" >> "$BACKUP_MANIFEST"
+  fi
+
+  # GCP config
+  if [[ -d "$HOME/.config/gcloud" ]]; then
+    tar -czf "$tempdir/gcloud.tar.gz" -C "$HOME/.config" gcloud
+    echo "gcloud.tar.gz" >> "$BACKUP_MANIFEST"
+  fi
+
+  # Wallpapers
+  if [[ -d "$HOME/Pictures/Wallpapers" ]]; then
+    tar -czf "$tempdir/wallpapers.tar.gz" -C "$HOME/Pictures" Wallpapers
+    echo "wallpapers.tar.gz" >> "$BACKUP_MANIFEST"
+  fi
+
   # Package list (for reference)
   if [[ -r "${DEVOS_DATA}/installed_packages.txt" ]]; then
     cp "${DEVOS_DATA}/installed_packages.txt" "$tempdir/installed_packages.txt"
@@ -169,6 +223,4 @@ backup_run() {
   echo
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  backup_run
-fi
+main "$@"

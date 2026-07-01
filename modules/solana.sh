@@ -53,6 +53,3 @@ install_solana() {
   pkg_mark_installed "mod:foundry"
   log_section "Solana Ecosystem Setup Complete"
 }
-
-install_anchor() { install_solana; }
-install_foundry() { install_solana; }

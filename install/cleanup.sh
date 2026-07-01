@@ -1,40 +1,22 @@
 #!/usr/bin/env bash
-# cleanup.sh — System cleanup utilities
-if [[ -z "${DEVOS_COMMON_LOADED:-}" ]]; then
-  DEVOS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  source "${DEVOS_ROOT}/install/common.sh"
-fi
-if [[ -z "${DEVOS_LOGGER_LOADED:-}" ]]; then
-  source "${DEVOS_ROOT}/install/logger.sh"
-fi
+# -*- mode: bash; tab-width: 2; indent-tabs-mode: nil; -*-
+# ===========================================================================
+# cleanup.sh — DevOS system cleanup / disk space reclamation
+# ===========================================================================
 
-_clean_size_before() {
-  local path="$1"
-  if [[ -e "$path" ]]; then
-    du -sb "$path" 2>/dev/null | cut -f1 || echo 0
-  else
-    echo 0
-  fi
-}
+set -Eeuo pipefail
 
-_clean_format_bytes() {
-  local bytes="$1"
-  if command -v numfmt &>/dev/null; then
-    numfmt --to=iec-i --suffix=B "$bytes"
-  else
-    echo "$bytes bytes"
-  fi
-}
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+source "${DEVOS_ROOT}/install/logger.sh"
 
-cleanup_run() {
+# --- Main --------------------------------------------------------------------
+main() {
   local total_freed=0
   log_section "DevOS Cleanup"
 
   # Docker prune
   if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
     log_info "Docker system prune..."
-    local before
-    before="$(docker system df --format '{{.Size}}' 2>/dev/null | head -1 || echo '0')"
     docker system prune -af --volumes 2>/dev/null && log_ok "Docker pruned" || log_info "Docker skipped"
   fi
 
@@ -42,13 +24,13 @@ cleanup_run() {
   if command -v journalctl &>/dev/null; then
     log_info "Journal vacuum (7 days)..."
     local before
-    before="$(_clean_size_before /var/log/journal)"
+    before="$(_devos_size_bytes /var/log/journal)"
     sudo journalctl --vacuum-time=7d 2>/dev/null && {
       local after
-      after="$(_clean_size_before /var/log/journal)"
+      after="$(_devos_size_bytes /var/log/journal)"
       local freed=$(( before - after ))
       if [[ $freed -gt 0 ]]; then
-        log_ok "Journal freed $(_clean_format_bytes $freed)"
+        log_ok "Journal freed $(_devos_format_bytes $freed)"
       fi
     }
   fi
@@ -63,13 +45,13 @@ cleanup_run() {
   if command -v cargo &>/dev/null; then
     log_info "Cargo sweep..."
     local before
-    before="$(_clean_size_before "$HOME/.cargo/registry/cache")"
+    before="$(_devos_size_bytes "$HOME/.cargo/registry/cache")"
     if command -v cargo-sweep &>/dev/null; then
       cargo sweep -r 2>/dev/null && {
         local after
-        after="$(_clean_size_before "$HOME/.cargo/registry/cache")"
+        after="$(_devos_size_bytes "$HOME/.cargo/registry/cache")"
         local freed=$(( before - after ))
-        [[ $freed -gt 0 ]] && log_ok "Cargo freed $(_clean_format_bytes $freed)"
+        [[ $freed -gt 0 ]] && log_ok "Cargo freed $(_devos_format_bytes $freed)"
       }
     else
       cargo install cargo-sweep 2>/dev/null && cargo sweep -r 2>/dev/null && log_ok "Cargo sweep installed and run" || log_info "Cargo sweep not available — skipped"
@@ -100,14 +82,38 @@ cleanup_run() {
     pip3 cache purge 2>/dev/null && log_ok "pip cache purged" || true
   fi
 
+  # uv cache
+  if command -v uv &>/dev/null; then
+    log_info "uv cache clean..."
+    uv cache clean 2>/dev/null && log_ok "uv cache cleaned" || true
+  fi
+
+  # Go module cache
+  if command -v go &>/dev/null; then
+    log_info "Go module cache clean..."
+    local before
+    before="$(_devos_size_bytes "$HOME/go/pkg/mod")"
+    go clean -modcache 2>/dev/null || true
+    local after
+    after="$(_devos_size_bytes "$HOME/go/pkg/mod")"
+    local go_freed=$(( before - after ))
+    [[ $go_freed -gt 0 ]] && log_ok "Go module cache freed $(_devos_format_bytes $go_freed)"
+  fi
+
+  # pipx unused packages
+  if command -v pipx &>/dev/null; then
+    log_info "Checking pipx for unused packages..."
+    pipx list --short 2>/dev/null | head -20 || true
+  fi
+
   # Thumbnail cache
   if [[ -d "$HOME/.cache/thumbnails" ]]; then
     log_info "Thumbnail cache..."
     local before
-    before="$(_clean_size_before "$HOME/.cache/thumbnails")"
+    before="$(_devos_size_bytes "$HOME/.cache/thumbnails")"
     rm -rf "$HOME/.cache/thumbnails"
     local freed=$before
-    [[ $freed -gt 0 ]] && log_ok "Thumbnails freed $(_clean_format_bytes $freed)"
+    [[ $freed -gt 0 ]] && log_ok "Thumbnails freed $(_devos_format_bytes $freed)"
   fi
 
   # Temp files
@@ -122,6 +128,4 @@ cleanup_run() {
   log_ok "System is tidier now!"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  cleanup_run
-fi
+main "$@"
